@@ -41,7 +41,7 @@ pub fn solve_d01_pt1_heap(elves: &[Food]) -> u32 {
 
 #[aoc(day1, part2, heap)]
 pub fn solve_d01_pt2_heap(elves: &[Food]) -> u32 {
-    sum_top_n(elves, 2)
+    sum_top_n(elves, 3)
 }
 
 fn sum_top_n(elves: &[Food], n: usize) -> u32 {
