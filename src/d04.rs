@@ -24,38 +24,28 @@ fn input_generator(input: &str) -> Vec<Pair> {
     input.trim().lines().map(parse_pair).collect()
 }
 
-fn either_contains_other(left: &Assignment, right: &Assignment) -> bool {
+fn either_contains_other(p: &Pair) -> bool {
+    let (left, right) = p;
     let (l_low, l_high) = left;
     let (r_low, r_high) = right;
     (l_low <= r_low && l_high >= r_high) || (r_low <= l_low && r_high >= l_high)
 }
 
-fn is_overlapping(left: &Assignment, right: &Assignment) -> bool {
+fn is_overlapping(p: &Pair) -> bool {
+    let (left, right) = p;
     let (l_low, l_high) = left;
     let (r_low, r_high) = right;
     (l_low <= r_high && l_high >= r_low) || (r_low <= l_high && r_high >= l_low)
 }
 
 #[aoc(day4, part1)]
-fn solve_d04_pt1(pairs: &Vec<Pair>) -> u32 {
-    pairs.iter().fold(0, |acc, p| {
-        let (left, right) = p;
-
-        acc + if either_contains_other(left, right) {
-            1
-        } else {
-            0
-        }
-    })
+fn solve_d04_pt1(pairs: &Vec<Pair>) -> usize {
+    pairs.iter().filter(|p| either_contains_other(p)).count()
 }
 
 #[aoc(day4, part2)]
-fn solve_d04_pt2(pairs: &Vec<Pair>) -> u32 {
-    pairs.iter().fold(0, |acc, p| {
-        let (left, right) = p;
-
-        acc + if is_overlapping(left, right) { 1 } else { 0 }
-    })
+fn solve_d04_pt2(pairs: &Vec<Pair>) -> usize {
+    pairs.iter().filter(|p| is_overlapping(p)).count()
 }
 
 #[cfg(test)]
