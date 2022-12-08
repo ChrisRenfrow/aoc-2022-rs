@@ -12,15 +12,25 @@ fn parse_line(line: &str) -> Vec<u8> {
         .collect()
 }
 
+fn get_col(trees: &Vec<Vec<u8>>, col: usize) -> Vec<u8> {
+    trees.iter().map(|r| r[col]).collect()
+}
+
+fn all_visible(tree_slice: &[u8], h: u8) -> bool {
+    tree_slice.iter().all(|&o| o < h)
+}
+
 fn is_visible(trees: &Vec<Vec<u8>>, x: usize, y: usize) -> bool {
     let tree = trees[y][x];
     let height = trees.len();
     let width = trees[0].len();
+    let row = &trees[y][..];
+    let col = get_col(trees, x);
 
-    let right = trees[y][x + 1..width].iter().all(|&o| o < tree);
-    let left = trees[y][0..x].iter().all(|&o| o < tree);
-    let up = trees[y + 1..height].iter().all(|o| o[x] < tree);
-    let down = trees[0..y].iter().all(|o| o[x] < tree);
+    let right = all_visible(&row[x + 1..width], tree);
+    let left = all_visible(&row[0..x], tree);
+    let up = all_visible(&col[y + 1..height], tree);
+    let down = all_visible(&col[0..y], tree);
 
     right || left || up || down
 }
@@ -43,10 +53,6 @@ fn solve_d08_pt1(trees: &Vec<Vec<u8>>) -> usize {
     v_tree_ct
 }
 
-fn get_col(trees: &Vec<Vec<u8>>, col: usize) -> Vec<u8> {
-    trees.iter().map(|r| r[col]).collect()
-}
-
 fn unwrap_ctrl(c: ControlFlow<usize, usize>) -> usize {
     if c.is_break() {
         c.break_value().unwrap()
@@ -55,24 +61,27 @@ fn unwrap_ctrl(c: ControlFlow<usize, usize>) -> usize {
     }
 }
 
-fn visibility_score(trees: &Vec<Vec<u8>>, x: usize, y: usize) -> usize {
-    let tree = trees[y][x];
-    let height = trees.len();
-    let width = trees[0].len();
-
-    let sum_score = |acc, &h| -> ControlFlow<usize, usize> {
-        if h >= tree {
+fn get_score(tree_section: Vec<u8>, tree: u8) -> usize {
+    unwrap_ctrl(tree_section.iter().try_fold(0, |acc, &other| {
+        if other >= tree {
             ControlFlow::Break(acc + 1)
         } else {
             ControlFlow::Continue(acc + 1)
         }
-    };
+    }))
+}
 
-    let right = unwrap_ctrl(trees[y][x + 1..width].iter().try_fold(0, sum_score));
-    let left = unwrap_ctrl(trees[y][0..x].iter().rev().try_fold(0, sum_score));
-    let column = get_col(trees, x);
-    let up = unwrap_ctrl(column[y + 1..height].iter().try_fold(0, sum_score));
-    let down = unwrap_ctrl(column[0..y].iter().rev().try_fold(0, sum_score));
+fn visibility_score(trees: &Vec<Vec<u8>>, x: usize, y: usize) -> usize {
+    let tree = trees[y][x];
+    let height = trees.len();
+    let width = trees[0].len();
+    let row = &trees[y][..].to_vec();
+    let col = get_col(trees, x);
+
+    let right = get_score(row[x + 1..width].to_vec(), tree);
+    let left = get_score(row[0..x].iter().rev().map(|&a| a).collect(), tree);
+    let up = get_score(col[y + 1..height].to_vec(), tree);
+    let down = get_score(col[0..y].iter().rev().map(|&a| a).collect(), tree);
 
     right * left * up * down
 }
@@ -92,8 +101,6 @@ fn solve_d08_pt2(trees: &Vec<Vec<u8>>) -> usize {
             } else {
                 max_scenic_score
             };
-
-            dbg!(&max_scenic_score);
         }
     }
 
@@ -137,7 +144,7 @@ mod tests {
     #[test]
     fn solve_pt2() {
         let input = parse_input(FILE_INPUT);
-        let expect = 0;
+        let expect = 331344;
         let actual = solve_d08_pt2(&input);
         assert_eq!(expect, actual);
     }
