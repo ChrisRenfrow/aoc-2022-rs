@@ -19,10 +19,19 @@ fn solve_d10_pt1(instructions: &Vec<Ins>) -> i32 {
         .fold(0, |acc: i32, ((_, v), &c)| acc + c as i32 * v)
 }
 
+#[aoc(day10, part2)]
+fn solve_d10_pt2(instructions: &Vec<Ins>) -> String {
+    let mut vm = Vm::new(instructions);
+    vm.run();
+    vm.out.print();
+    vm.out.to_string()
+}
+
 #[derive(Debug)]
 struct Vm {
     ins: Vec<Ins>,
     eng: Engine,
+    out: Crt,
 }
 
 impl Vm {
@@ -30,12 +39,30 @@ impl Vm {
         Self {
             ins: ins.to_vec(),
             eng: Engine::new(),
+            out: Crt::new(),
         }
     }
 
     pub fn run(&mut self) {
         let engine = &mut self.eng;
         self.ins.iter().for_each(|i| engine.eval(i));
+        self.render();
+    }
+
+    pub fn render(&mut self) {
+        let display = &mut self.out;
+        let engine = &self.eng;
+
+        engine.cycles.iter().enumerate().for_each(|(i, &c)| {
+            let (x, y) = (i % display.width, i / display.width);
+            if x.checked_sub(1).unwrap_or(1) <= (c as usize)
+                && (c as usize) <= x + 1
+                && y < display.height
+            {
+                display.draw(y, x);
+            }
+        });
+        println!();
     }
 }
 
@@ -76,6 +103,57 @@ impl Engine {
             self.cycle += 1;
             self.cycles.push(self.x_reg);
         });
+    }
+}
+
+struct Crt {
+    width: usize,
+    height: usize,
+    pixels: Vec<Vec<bool>>,
+}
+
+impl Crt {
+    fn new() -> Self {
+        let width = 40;
+        let height = 6;
+        Self {
+            width,
+            height,
+            pixels: vec![vec![false; width]; height],
+        }
+    }
+
+    fn draw(&mut self, row: usize, col: usize) {
+        self.pixels[row][col] = true;
+    }
+
+    fn print(&self) {
+        println!("{:?}", self);
+    }
+}
+
+impl std::fmt::Display for Crt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::new();
+        for y in 0..self.height {
+            for x in 0..self.width {
+                match self.pixels[y][x] {
+                    true => output.push('#'),
+                    _ => output.push('.'),
+                }
+            }
+            if y < self.height - 1 {
+                output.push('\n');
+            }
+        }
+
+        write!(f, "{}", output)
+    }
+}
+
+impl std::fmt::Debug for Crt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
     }
 }
 
@@ -131,6 +209,32 @@ addx -5";
         let input = parse_input(FILE_INPUT);
         let expect = 12980;
         let actual = solve_d10_pt1(&input);
+        assert_eq!(expect, actual);
+    }
+
+    #[test]
+    fn example_pt2() {
+        let input = parse_input(EXAMPLE_INPUT);
+        let expect = "##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######.....";
+        let actual = solve_d10_pt2(&input);
+        assert_eq!(expect, actual);
+    }
+
+    #[test]
+    fn solve_pt2() {
+        let input = parse_input(FILE_INPUT);
+        let expect = "###..###....##.#....####.#..#.#....###..
+...#.#..#....#.#....#....#..#.#....#..#.
+.##..#..#....#.#....###..#..#.#....#..#.
+...#.###.....#.#....#....#..#.#....###..
+...#.#.#..#..#.#....#....#..#.#....#....
+###..#..#..##..####.#.....##..####.#....";
+        let actual = solve_d10_pt2(&input);
         assert_eq!(expect, actual);
     }
 }
