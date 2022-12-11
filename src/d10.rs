@@ -7,33 +7,79 @@ fn parse_input(input: &str) -> Vec<Ins> {
 
 #[aoc(day10, part1)]
 fn solve_d10_pt1(instructions: &Vec<Ins>) -> i32 {
-    let mut state: Vec<i32> = vec![];
-    let mut x: i32 = 1;
+    let mut vm = Vm::new(instructions);
     let cycles_of_interest: &[usize] = &[20, 60, 100, 140, 180, 220];
-
-    for (n, i) in instructions.iter().enumerate() {
-        match i {
-            Ins::AddX(y) => {
-                state.push(x);
-                state.push(x);
-                x += y;
-                state.push(x);
-            }
-            _ => state.push(x),
-        }
-    }
-
-    dbg!(&state);
-
-    state
+    vm.run();
+    vm.eng
+        .cycles
         .iter()
         .enumerate()
-        .filter(|(n, _)| cycles_of_interest.contains(n))
+        .filter(|(n, _)| cycles_of_interest.contains(&(n + 1)))
         .zip(cycles_of_interest)
         .fold(0, |acc: i32, ((_, v), &c)| acc + c as i32 * v)
 }
 
 #[derive(Debug)]
+struct Vm {
+    ins: Vec<Ins>,
+    eng: Engine,
+}
+
+impl Vm {
+    pub fn new(ins: &Vec<Ins>) -> Self {
+        Self {
+            ins: ins.to_vec(),
+            eng: Engine::new(),
+        }
+    }
+
+    pub fn run(&mut self) {
+        let engine = &mut self.eng;
+        self.ins.iter().for_each(|i| engine.eval(i));
+    }
+}
+
+#[derive(Debug)]
+struct Engine {
+    cycle: usize,
+    cycles: Vec<i32>,
+    x_reg: i32,
+}
+
+impl Engine {
+    fn new() -> Self {
+        Self {
+            cycle: 0,
+            cycles: vec![],
+            x_reg: 1,
+        }
+    }
+
+    fn eval(&mut self, i: &Ins) {
+        match i {
+            Ins::AddX(x) => self.addx(x),
+            Ins::NoOp => self.noop(),
+        }
+    }
+
+    fn addx(&mut self, x: &i32) {
+        self.advance_cycle(2);
+        self.x_reg += x;
+    }
+
+    fn noop(&mut self) {
+        self.advance_cycle(1);
+    }
+
+    fn advance_cycle(&mut self, n: usize) {
+        (0..n).for_each(|n| {
+            self.cycle += 1;
+            self.cycles.push(self.x_reg);
+        });
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 enum Ins {
     AddX(i32),
     NoOp,
@@ -75,7 +121,7 @@ addx -5";
     #[test]
     fn example_pt1() {
         let input = parse_input(EXAMPLE_INPUT);
-        let expect = 0;
+        let expect = 13140;
         let actual = solve_d10_pt1(&input);
         assert_eq!(expect, actual);
     }
@@ -83,7 +129,7 @@ addx -5";
     #[test]
     fn solve_pt1() {
         let input = parse_input(FILE_INPUT);
-        let expect = 0;
+        let expect = 12980;
         let actual = solve_d10_pt1(&input);
         assert_eq!(expect, actual);
     }
