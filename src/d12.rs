@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
+use std::hash::{Hash, Hasher};
 
 use petgraph::algo::dijkstra;
 use petgraph::data::FromElements;
@@ -89,21 +90,21 @@ impl Display for HeightMap {
                 }
             }
 
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
-        write!(f, "")
+        writeln!(f)
     }
 }
 
 impl Debug for HeightMap {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self)
     }
 }
 
 type Height = usize;
 
-#[derive(Debug, Hash, Copy, Clone, PartialOrd, Eq)]
+#[derive(Debug, Copy, Clone)]
 struct Point2d {
     x: usize,
     y: usize,
@@ -118,6 +119,21 @@ impl Display for Point2d {
 impl PartialEq for Point2d {
     fn eq(&self, other: &Self) -> bool {
         self.x == other.x && self.y == other.y
+    }
+}
+
+impl Hash for Point2d {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
+    }
+}
+
+impl Eq for Point2d {}
+
+impl PartialOrd for Point2d {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -147,10 +163,10 @@ impl HeightMap {
     }
 
     fn traversable(&self, origin: usize, neighbor: Option<Point>) -> Option<Point> {
-        if !neighbor.is_none() {
-            let (x, y) = neighbor.unwrap();
+        if let Some(n) = neighbor {
+            let (x, y) = n;
             let n = self.map[y][x];
-            if n <= origin + 1 && n >= origin.checked_sub(1).unwrap_or(0) {
+            if n <= origin + 1 && n >= origin.saturating_sub(1) {
                 return neighbor;
             }
         }
@@ -200,11 +216,9 @@ fn map_to_graph(m: &HeightMap) -> UnGraphMap<Point2d, usize> {
 
             graph.add_node(curr);
 
-            for n in nbrs {
-                if let Some(n) = n {
-                    graph.add_edge(curr, Point2d::new(n.0, n.1), *v);
-                }
-            }
+            nbrs.into_iter().flatten().for_each(|n| {
+                graph.add_edge(curr, Point2d::new(n.0, n.1), *v);
+            });
         }
     }
 
@@ -233,7 +247,6 @@ abdefghi";
         let input = parse_input(EXAMPLE_INPUT);
         let expect = 31;
         let actual = solve_d12_pt1(&input);
-        panic!();
         assert_eq!(expect, actual);
     }
 
