@@ -59,19 +59,24 @@ impl Move {
 
 mod parser {
     use super::{Crate, Move};
-    use nom::{bytes::complete::tag, character::complete::digit1, combinator::map_res, IResult};
+    use nom::{
+        bytes::complete::tag,
+        character::complete::{digit1, space0, space1},
+        combinator::map_res,
+        sequence::{delimited, preceded, terminated},
+        IResult,
+    };
 
     pub fn parse_move(input: &str) -> IResult<&str, Move> {
-        let (input, qty) = field("move ", input)?;
-        let (input, from) = field(" from ", input)?;
-        let (input, to) = field(" to ", input)?;
+        let (input, qty) = field("move", input)?;
+        let (input, from) = field("from", input)?;
+        let (input, to) = field("to", input)?;
         Ok((input, Move::new(qty, from, to)))
     }
 
     fn field<'a>(field: &'a str, input: &'a str) -> IResult<&'a str, usize> {
-        // TODO: consume surrounding whitespace before returning
-        let (input, _) = tag(field)(input)?;
-        map_res(digit1, number)(input)
+        let (input, _) = terminated(tag(field), space1)(input)?;
+        terminated(map_res(digit1, number), space0)(input)
     }
 
     fn number(input: &str) -> Result<usize, std::num::ParseIntError> {
