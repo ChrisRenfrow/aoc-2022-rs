@@ -60,9 +60,9 @@ impl Move {
 mod parser {
     use super::{Crate, Move};
     use nom::{
-        bytes::complete::tag,
-        character::complete::{digit1, space0, space1},
-        combinator::map_res,
+        bytes::complete::{tag, take},
+        character::complete::{alpha1, anychar, char, digit1, space0, space1},
+        combinator::{iterator, map_res, opt},
         sequence::{delimited, preceded, terminated},
         IResult,
     };
@@ -76,22 +76,31 @@ mod parser {
 
     fn field<'a>(field: &'a str, input: &'a str) -> IResult<&'a str, usize> {
         let (input, _) = terminated(tag(field), space1)(input)?;
-        terminated(map_res(digit1, number), space0)(input)
-    }
-
-    fn number(input: &str) -> Result<usize, std::num::ParseIntError> {
-        input.parse()
+        terminated(map_res(digit1, |s: &str| s.parse()), space0)(input)
     }
 
     pub fn parse_stack_row(input: &str) -> IResult<&str, Vec<Option<Crate>>> {
-        // crates in a row are chunks of 3 bytes followed by a single space
-        todo!()
+        // crates in a row are chunks of 3 bytes followed by 0-1 space
+        let mut it = iterator(input, terminated(take(3usize), space0));
+        let row = it
+            .map(|e| {
+                let (i, c) = parse_crate(e).ok()?;
+                c
+            })
+            .collect::<Vec<Option<Crate>>>();
+        let (input, _) = it.finish()?;
+        Ok((input, row))
     }
 
     fn parse_crate(input: &str) -> IResult<&str, Option<Crate>> {
-        // "    " -> None
-        // "[A] " -> Some(Crate { label: 'A' })
-        todo!()
+        let (input, label) = opt(delimited(char('['), anychar, char(']')))(input)?;
+        Ok((input, {
+            if let Some(label) = label {
+                Some(Crate { label })
+            } else {
+                None
+            }
+        }))
     }
 }
 
