@@ -5,6 +5,69 @@ static ROCK_PTS: u32 = 1;
 static PAPER_PTS: u32 = 2;
 static SCISS_PTS: u32 = 3;
 
+#[aoc_generator(day2, part1)]
+fn input_generator_pt1(input: &str) -> Vec<Round> {
+    input.trim().split('\n').map(parse_round_pt1).collect()
+}
+
+fn parse_round_pt1(s: &str) -> Round {
+    let plays = s.split(' ').collect::<Vec<&str>>();
+    (parse_play_pt1(plays[0]), parse_play_pt1(plays[1]))
+}
+
+fn parse_play_pt1(play: &str) -> Play {
+    match play {
+        "A" | "X" => Play::Rock,
+        "B" | "Y" => Play::Paper,
+        "C" | "Z" => Play::Scissors,
+        _ => unreachable!(),
+    }
+}
+
+#[aoc_generator(day2, part2)]
+fn input_generator_pt2(input: &str) -> Vec<TargetRound> {
+    input.trim().split('\n').map(parse_round_pt2).collect()
+}
+
+fn parse_round_pt2(s: &str) -> TargetRound {
+    let plays = s.split(' ').collect::<Vec<&str>>();
+    (parse_play_pt2(plays[0]), parse_target_result(plays[1]))
+}
+
+fn parse_play_pt2(play: &str) -> Play {
+    match play {
+        "A" => Play::Rock,
+        "B" => Play::Paper,
+        "C" => Play::Scissors,
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_target_result(target: &str) -> Results {
+    match target {
+        "X" => Results::Lose,
+        "Y" => Results::Draw,
+        "Z" => Results::Win,
+        _ => unimplemented!(),
+    }
+}
+
+#[aoc(day2, part1)]
+fn solve_d02_pt1(rounds: &[Round]) -> u32 {
+    rounds.iter().map(points_for_round).sum()
+}
+
+#[aoc(day2, part2)]
+fn solve_d02_pt2(target_rounds: &[TargetRound]) -> u32 {
+    target_rounds
+        .iter()
+        .map(round_for_target)
+        .collect::<Vec<Round>>()
+        .iter()
+        .map(points_for_round)
+        .sum()
+}
+
 #[derive(Debug, Copy, Clone)]
 enum Play {
     Rock,
@@ -20,15 +83,6 @@ enum Results {
     Win,
     Lose,
     Draw,
-}
-
-fn parse_play_pt1(play: &str) -> Play {
-    match play {
-        "A" | "X" => Play::Rock,
-        "B" | "Y" => Play::Paper,
-        "C" | "Z" => Play::Scissors,
-        _ => unreachable!(),
-    }
 }
 
 fn round_result_pt1(round: &Round) -> Results {
@@ -76,24 +130,6 @@ fn round_for_target(target: &TargetRound) -> Round {
     )
 }
 
-fn parse_play_pt2(play: &str) -> Play {
-    match play {
-        "A" => Play::Rock,
-        "B" => Play::Paper,
-        "C" => Play::Scissors,
-        _ => unimplemented!(),
-    }
-}
-
-fn parse_target_result(target: &str) -> Results {
-    match target {
-        "X" => Results::Lose,
-        "Y" => Results::Draw,
-        "Z" => Results::Win,
-        _ => unimplemented!(),
-    }
-}
-
 fn points_for_round(round: &Round) -> u32 {
     (match round_result_pt1(round) {
         Results::Win => WIN_PTS,
@@ -104,50 +140,6 @@ fn points_for_round(round: &Round) -> u32 {
         Play::Paper => PAPER_PTS,
         Play::Scissors => SCISS_PTS,
     })
-}
-
-#[aoc_generator(day2, part1)]
-fn input_generator_pt1(input: &str) -> Vec<Round> {
-    input
-        .trim()
-        .split('\n')
-        .map(|l| {
-            let mut round = l.split(' ');
-            let p1 = parse_play_pt1(round.next().unwrap());
-            let p2 = parse_play_pt1(round.next().unwrap());
-            (p1, p2)
-        })
-        .collect()
-}
-
-#[aoc_generator(day2, part2)]
-fn input_generator_pt2(input: &str) -> Vec<TargetRound> {
-    input
-        .trim()
-        .split('\n')
-        .map(|l| {
-            let mut round = l.split(' ');
-            let p1 = parse_play_pt2(round.next().unwrap());
-            let p2 = parse_target_result(round.next().unwrap());
-            (p1, p2)
-        })
-        .collect()
-}
-
-#[aoc(day2, part1)]
-fn solve_d02_pt1(rounds: &Vec<Round>) -> u32 {
-    rounds.iter().map(points_for_round).sum()
-}
-
-#[aoc(day2, part2)]
-fn solve_d02_pt2(target_rounds: &Vec<TargetRound>) -> u32 {
-    target_rounds
-        .iter()
-        .map(round_for_target)
-        .collect::<Vec<Round>>()
-        .iter()
-        .map(points_for_round)
-        .sum()
 }
 
 #[cfg(test)]
